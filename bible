@@ -1,0 +1,243 @@
+#!/bin/env python3
+# file created using autopy automatic script maker
+# tutorial for web scraping: https://realpython.com/python-web-scraping-practical-introduction/#your-first-web-scraper 
+
+
+#---IMPORTS---
+from re import I
+from urllib.request import urlopen
+import sys
+from html.parser import HTMLParser
+
+
+#---CLASSES---
+class MyHTMLParser_nwt(HTMLParser):
+    def __init__(self, *args, **kwargs): #make a list of all data elements meant to display on web page
+        self.data_nwt = []
+        super(MyHTMLParser_nwt, self).__init__(*args, **kwargs)
+
+    def handle_data(self, data_nwt):
+        if data_nwt:
+            self.data_nwt.append(data_nwt) #adds data elements to list
+
+class MyHTMLParser_nas(HTMLParser):
+    def __init__(self, *args, **kwargs): #make a list of all data elements meant to display on web page
+        self.data_nas = []
+        super(MyHTMLParser_nas, self).__init__(*args, **kwargs)
+
+    def handle_data(self, data_nas):
+        if data_nas:
+            self.data_nas.append(data_nas) #adds data elements to list
+
+
+parser_nwt = MyHTMLParser_nwt()
+parser_nas = MyHTMLParser_nas()
+
+
+#---VARIABLES---
+books = {
+    "Genesis":      "1",
+    "Exodus":       "2",
+    "Leviticus":    "3",
+    "Numbers":      "4",
+    "Deuteronomy":  "5",
+    "Joshua":       "6",
+    "Judges":       "7",
+    "Ruth":         "8",
+    "1 Samuel":     "9",
+    "2 Samuel":     "10",
+    "1 Kings":      "11",
+    "2 Kings":      "12",
+    "1 Chronicles": "13",
+    "2 Chronicles": "14",
+    "Ezra":         "15",
+    "Nehemiah":     "16",
+    "Esther":       "17",
+    "Job":          "18",
+    "Psalms":       "19",
+    "Proverbs":     "20",
+    "Ecclesiastes": "21",
+    "Song":         "22",
+    "Isaiah":       "23",
+    "Jeremiah":     "24",
+    "Lamentations": "25",
+    "Ezekiel":      "26",
+    "Daniel":       "27",
+    "Hosea":        "28",
+    "Joel":         "29",
+    "Amos":         "30",
+    "Obadiah":      "31",
+    "Jonah":        "32",
+    "Micah":        "33",
+    "Nahum":        "34",
+    "Habakkuk":     "35",
+    "Zephaniah":    "36",
+    "Haggai":       "37",
+    "Zechariah":    "38",
+    "Malachi":      "39",
+    "Matthew":      "40",
+    "Mark":         "41",
+    "Luke":         "42",
+    "John":         "43",
+    "Acts":         "44",
+    "Romans":       "45",
+    "1 Cor":        "46",
+    "2 Cor":        "47",
+    "Galatians":    "48",
+    "Ephesians":    "49",
+    "Philippians":  "50",
+    "Colossians":   "51",
+    "1 Thes":       "52",
+    "2 Thes":       "53",
+    "1 Timothy":    "54",
+    "2 Timothy":    "55",
+    "Titus":        "56",
+    "Philemon":     "57",
+    "Hebrews":      "58",
+    "James":        "59",
+    "1 Peter":      "60",
+    "2 Peter":      "61",
+    "1 John":       "62",
+    "2 John":       "63",
+    "3 John":       "64",
+    "Jude":         "65",
+    "Revelation":   "66",
+}
+
+book = sys.argv[1] # arg1=book
+book = book.title()
+chapter = sys.argv[2] # arg2=chapter
+verse = sys.argv[3] # arg3=verse
+nextVerse = str(int(verse) + 1)
+bookNo = books[book]
+version = "NASB1995"
+url_nwt = "https://wol.jw.org/en/wol/b/r1/lp-e/nwtsty/" + bookNo + "/" + chapter + "#study=parallel&v=" + bookNo + ":" + chapter + ":" + verse
+url_nas = "https://www.biblegateway.com/passage/?search=" + book + "+" + chapter + "&version=" + version
+print(url_nas)
+
+#debug = input("DEBUG: NAS URL: " + url_nas)
+
+#---FUNCTIONS---
+
+def getHtml_nwt(): #extracts html from url with a string to specify the start of the html, and a way to specify the stop of the html
+    #NWT
+    global verse_nwt, lastVerseMessage
+    page = urlopen(url_nwt)
+    html_bytes = page.read()
+    html = html_bytes.decode("utf-8")
+    search = 'v' + bookNo + '-' + chapter + '-' + verse + '-1'
+    endSearch = 'v' + bookNo + '-' + chapter + '-' + nextVerse + '-1'
+    verse_index = html.find(search)
+    endVerse_index = html.find(endSearch)
+    start_index = verse_index + len(search)
+    end_index = endVerse_index + len(endSearch)
+    lastVerseMessage = ""
+    if end_index < start_index:
+        end_index = start_index + 1000
+        lastVerseMessage = book + " " + chapter + ":" + verse + " is the last verse of the chapter"
+    verse_nwt = html[start_index:end_index]
+
+def getHtml_nas(): #extracts html from url with a string to specify the start of the html, and a way to specify the stop of the html
+    #NAS
+    global verse_nas, lastVerseMessage
+    page = urlopen(url_nas)
+    html_bytes = page.read()
+    html = html_bytes.decode("utf-8")
+    search = '-' + chapter + '-' + verse
+    endSearch = '-' + chapter + '-' + nextVerse
+    verse_index = html.find(search)
+    endVerse_index = html.find(endSearch)
+    start_index = verse_index + len(search)
+    end_index = endVerse_index + len(endSearch)
+    lastVerseMessage = ""
+    if end_index < start_index:
+        end_index = start_index + 2000
+        lastVerseMessage = book + " " + chapter + ":" + verse + " is the last verse of the chapter"
+    verse_nas = html[start_index:end_index]
+
+
+def parseHtml_nwt(): #process html to be readable
+    # region
+    #NWT
+    parser_nwt.feed(verse_nwt)
+    dataList = parser_nwt.data_nwt
+
+    #remove unwanted characters from data
+    for item in dataList:
+        if '*' in item:
+            dataList.remove(item)
+    for item in dataList:
+        if '+' in item:
+            dataList.remove(item)
+
+    tmpList = []
+    for item in dataList: #remove whitespace characters like \n
+        tmpList.append(item.strip())
+    dataList = tmpList
+
+    #remove unwanted items from data in list by converting to dict, and then back to a list
+    dataDict = dict(enumerate(dataList)) #converts list to dict so item 0 can be removed
+    del dataDict[0]
+    dataList = list(dataDict.values()) #converts dict back to list
+    printed_nwt = ' '.join(dataList)
+    printed_nwt = """
+NEW WORLD TRANSLATION:
+""" + printed_nwt
+    print (printed_nwt)
+
+    # endregion
+
+def parseHtml_nas(): #process html to be readable
+    # region
+    #NAS
+    parser_nas.feed(verse_nas)
+    dataList = parser_nas.data_nas
+
+    #remove unwanted characters from data
+    for item in dataList:
+        if '*' in item:
+            dataList.remove(item)
+    for item in dataList:
+        if '+' in item:
+            dataList.remove(item)
+
+    i=0
+    #print (dataList)
+    while i <= len(dataList)-1: #remove list item "(" and the 2 following items
+        if dataList[i] == "(":
+            dataList.pop(i+2)
+            dataList.pop(i+1)
+            dataList.pop(i)
+        i+=1
+
+    i=0
+    while i <= len(dataList)-1:
+        if dataList[i] == "[": #remove list item "[" and the 2 following items
+            dataList.pop(i+2)
+            dataList.pop(i+1)
+            dataList.pop(i)
+        i+=1
+
+    tmpList = []
+    for item in dataList: #remove whitespace characters like \n
+        tmpList.append(item.strip())
+    dataList = tmpList
+
+    #remove unwanted items from data in list by converting to dict, and then back to a list
+    dataDict = dict(enumerate(dataList)) #converts list to dict so item 0 can be removed
+    del dataDict[0]
+    dataList = list(dataDict.values()) #converts dict back to list
+    printed_nas = ' '.join(dataList)
+    printed_nas = """
+NEW AMERICAN STANDARD BIBLE:
+""" + printed_nas
+    print (printed_nas)
+    # endregion
+
+#---CALLS---
+
+getHtml_nwt()
+parseHtml_nwt()
+getHtml_nas()
+parseHtml_nas()
+print (lastVerseMessage)
